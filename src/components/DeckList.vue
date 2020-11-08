@@ -1,10 +1,6 @@
 <template>
   <v-card>
-    <v-toolbar
-      color="primary"
-      dark
-      flat
-    >
+    <v-toolbar color="primary" dark flat>
       <v-icon>mdi-silverware</v-icon>
       <v-toolbar-title>Local hotspots</v-toolbar-title>
     </v-toolbar>
@@ -26,30 +22,18 @@
           </v-treeview>
         </v-card-text>
       </v-col>
-
     </v-row>
 
     <v-divider></v-divider>
 
     <v-card-actions>
-      <v-btn
-        text
-        
-      >
-        Reset
-      </v-btn>
+      <v-btn text> Reset </v-btn>
 
       <v-spacer></v-spacer>
 
-      <v-btn
-        class="white--text"
-        color="green darken-1"
-        depressed
-      >
+      <v-btn class="white--text" color="green darken-1" depressed>
         Save
-        <v-icon right>
-          mdi-content-save
-        </v-icon>
+        <v-icon right> mdi-content-save </v-icon>
       </v-btn>
     </v-card-actions>
   </v-card>
@@ -63,10 +47,9 @@ export default {
 
   data: () => ({
     decks: [],
-
   }),
   created: function () {
-    this.greet()
+    this.greet();
   },
   methods: {
     greet: function () {
@@ -91,12 +74,51 @@ export default {
           },
         })
         .then((response) => {
-          this.decks = this.formatDecks(response.data.result);
+          // this.decks = this.formatDecks(response.data.result);
+          this.decks = this.getDecks(response.data.result);
           console.log(this.decks);
         })
         .catch(function (error) {
           console.log(error);
         });
+    },
+    getDecks(data) {
+      // todo: check null
+
+      let items = Object.entries(data);
+      if (items.length <= 0) return;
+
+      const DECKROOT = "deckRoot";
+      let parentChildrenMap = new Map();
+      let nameObjectMap = new Map();
+      items.forEach(([verboseName, id]) => {
+        let names = verboseName.split("::");
+        let name = names[names.length - 1];
+
+        if (names.length === 1) {
+          parentChildrenMap.set(verboseName, DECKROOT);
+          nameObjectMap.set(verboseName, { id: id, name: name });
+        } else {
+          names.length = names.length - 1;
+          let parentName = names.join("::");
+          parentChildrenMap.set(verboseName, parentName);
+          nameObjectMap.set(verboseName, { id: id, name: name });
+        }
+      });
+
+      let rootDeck = { name: DECKROOT, children: [] };
+      parentChildrenMap.forEach((pName, cName) => {
+        let parentDeck;
+        if (pName === DECKROOT) {
+          parentDeck = rootDeck;
+        } else {
+          parentDeck = nameObjectMap.get(pName);
+        }
+        let childDeck = nameObjectMap.get(cName);
+        parentDeck.children = [...(parentDeck.children || []), childDeck];
+      });
+
+      return rootDeck.children;
     },
     formatDecks(data) {
       // todo: check null
